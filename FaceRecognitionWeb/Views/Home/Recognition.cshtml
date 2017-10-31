@@ -1,0 +1,116 @@
+﻿@{
+    ViewBag.title = "Facial Recognition";
+}
+
+@section Scripts{
+<script src="//cdnjs.cloudflare.com/ajax/libs/annyang/2.6.0/annyang.min.js"></script>
+<script>
+    var video = document.querySelector("#videoElement");
+    var pageTitle = "Facial Recognition";
+    $('#jumboTitle').text(pageTitle);
+
+    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia || navigator.oGetUserMedia;
+
+    if (navigator.getUserMedia) {
+        navigator.getUserMedia({ video: true }, handleVideo, videoError);
+    }
+
+    function handleVideo(stream) {
+        video.src = window.URL.createObjectURL(stream);
+    }
+
+    function videoError(e) {
+        // do something
+    }
+
+    $('#snap').click(function () {
+        IdentifyImage();
+    });
+
+    //var recognition = new webkitSpeechRecognition();
+    //recognition.lang = "en-GB";
+    //recognition.onresult = function (event) {
+    //    console.log("started");
+    //    console.log(event);
+    //}
+    //recognition.start();
+
+    if (annyang) {
+        annyang.setLanguage('en-GB');
+        annyang.lang = "en-GB";
+        console.log("loaded");
+        // Let's define a command.
+        var commands = {
+            'who am i': IdentifyImage,
+            'take my photo': IdentifyImage,
+            'snap snap': IdentifyImage,
+            'ready': IdentifyImage,
+            'show camera': ResetPage,
+            'reset': ResetPage
+        };
+
+        // Add our commands to annyang
+        annyang.addCommands(commands);
+
+        // Start listening.
+        annyang.start();
+    }
+    function ResetPage() {
+        ShowCamera();
+        $('#jumboTitle').text(pageTitle);
+    }
+    function ShowCamera() {
+        $('#videoElement').show();
+        $('#canvas').hide();
+        $('#butDiv').hide();
+        $('#identifyButton').show();
+    }
+    function HideCamera() {
+        $('#videoElement').hide();
+        $('#canvas').show();
+        $('#butDiv').show();
+        $('#identifyButton').hide();
+    }
+    function IdentifyImage() {
+        HideCamera();
+        $('#jumboTitle').text("Identifying").fadeIn(300).fadeOut(300).fadeIn(300).fadeOut(300).fadeIn(300).fadeOut(300).fadeIn(300);
+        var canvas = document.getElementById('canvas');
+        var context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, 640, 480);
+        var dataURL = canvas.toDataURL('image/jpeg', 1.0);
+        $.ajax({
+            url: '@Url.Action("IdentifyFace")',
+            type: 'POST',
+            data: {
+                fileData: dataURL
+            },
+            dataType: "json",
+            success: function(result) {
+                if (result.persons === null) {
+                    $('#jumboTitle').text("Unknown Person !!!");
+                } else if (result.persons.length === 1) {
+                    $('#jumboTitle').text("Welcome " + result.persons[0].Name);
+                }
+            }
+        });
+    }
+</script>
+}
+
+<div id="container" class="container highlightBackground">
+    <div class="jumbotron center" style="margin-bottom:0;padding-bottom:5px;padding-top:5px;">
+        <h1 id="jumboTitle"></h1>    
+    </div>
+    <div class="row" style="margin-top: 0;">
+        <div class="col-md-12" align="center">
+            <video autoplay="true" id="videoElement"></video>
+            <canvas id="canvas" width="640" height="480" hidden></canvas>          
+        </div> 
+        <div class="col-md-12" align="center">
+            <div id="identifyButton" class="btn btn-lg btn-success" onclick="IdentifyImage()">Identify Person</div>
+            <div id="butDiv" hidden>
+                <button id="showCameraButton" class="btn btn-lg btn-success" onclick="ShowCamera()">Show Camera</button>
+            </div>           
+        </div>
+    </div>
+</div>

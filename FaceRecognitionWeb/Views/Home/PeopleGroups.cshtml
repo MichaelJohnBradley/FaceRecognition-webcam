@@ -1,0 +1,224 @@
+﻿@{
+    ViewBag.Title = "People and People Groups";
+}
+
+@section Scripts{
+<script>
+
+    //call the api to get list of the person groups
+    function GetPersonGroups() {
+
+    }
+
+    //create a person group with the given name
+    function CreatePersonGroup() {
+        $.ajax({
+            url: '@Url.Action("CreatePersonGroup")',
+            type: 'POST',
+            data: {
+                personGroupId: "employees"
+            },
+            dataType: "json",
+            success: function (result) {
+                console.log(result);
+            }
+        });
+    }
+
+    //create a person in the given person group
+    function CreatePerson() {
+        var personName = $('#personName').val();
+        $.ajax({
+            url: '@Url.Action("CreatePerson")',
+            type: 'POST',
+            data: {
+                personGroupId: "employees",
+                name: personName
+            },
+            dataType: "json"
+        }).then(function () {
+            GetEmployees();                
+            $('#personName').val("");
+            alert("Person Added");
+        });
+    }
+
+    //delete the person from the person group
+    function DeletePerson(personId) {
+        var personGroupId = "employees";
+        $.ajax({
+            url: '@Url.Action("DeletePerson")',
+            type: 'POST',
+            data: {
+                personGroupId: personGroupId,
+                personId: personId
+            },
+            dataType: "json"
+        }).always(function () {                
+            GetEmployees();
+        });
+    }
+
+    //add an image to a person
+    function AddImageToPerson() {
+        var dataURL = canvas.toDataURL('image/jpeg', 1.0);
+        var personId = $("#personId").val();
+        $.ajax({
+            url: '@Url.Action("AddFaceToPerson")',
+            type: 'POST',
+            data: {
+                personGroupId: "employees",
+                personId: personId,
+                imageBase64: dataURL
+            },
+            dataType: "json",
+            success: function(result) {
+                console.log(result);                    
+            }
+        }).always(function() {
+            //close the modal               
+            $('#myModal').modal('toggle');
+            GetEmployees();
+        });
+    }
+
+
+    //get persons in the given person group
+    function GetEmployees() {
+        $.ajax({
+            url: '@Url.Action("GetPersonsInPersonGroup")',
+            type: 'POST',
+            data: {
+                personGroupId: "employees"
+            },
+            dataType: "json",
+            success: function(result) {
+                console.log(result);
+                var elem = $('#persons');
+                elem.empty();
+                $(result).each(function(index, value) {
+                    elem.append("<div class='col-md-6'><div class='panel panel-primary'><div class='panel-heading'>" +
+                        value.Name +
+                        "</div><div class='panel-body'>Uploaded " + value.PersistedFaceIds.length + " photos</div><div class='panel-footer'><button class='btn btn-warning' onclick='DeletePerson(" + "\"" + value.PersonId + "\"" + ")'>Delete Person</button><button class='btn btn-success' onclick='UploadImage(" + "\"" + value.PersonId + "\"" + ",\"" + value.Name + "\"" +")'>Add Image</button></div></div></div>");
+                });
+            }
+        });
+    }
+
+    function UploadImage(personId, name) {
+        ClearCanvas();
+        $("#uploadImage").val("");                        
+        $("#myModal").modal();
+        $("#modalPersonName").text(name);
+        $("#personId").val(personId);
+
+    }  
+
+    function PreviewImage() {
+        var canvas = document.getElementById('canvas');
+        var context = canvas.getContext('2d');
+        var img1 = new Image();
+        var fileReader = new FileReader();
+        var dataUrl;
+
+        fileReader.readAsDataURL(document.getElementById("uploadImage").files[0]);
+        fileReader.onload = function (event) {
+            dataUrl = event.target.result;
+            img1.onload = function () {
+                context.drawImage(img1, 0, 0, 400, 400);
+            };
+            img1.src = dataUrl;
+        };
+    };
+
+    function ClearCanvas() {
+        var canvas = document.getElementById('canvas');
+        var context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    GetEmployees();
+
+</script>
+}
+@*<div>
+    <h2>Create Person Group</h2>
+    <label>Person Group Id: </label><input id="personGroupId"/>
+    <label>Person Group Name: </label><input id="personGroupName" />
+    <button onclick="CreatePersonGroup()">Add Person Group</button>
+</div>*@
+<div id="container" class="container highlightBackground">
+    <div class="jumbotron center" style="margin-bottom:0;padding-bottom:5px;padding-top:5px;">
+        <h1 id="jumboTitle">Employees Person Group</h1>
+    </div>    
+    <div class="panel panel-success">
+        <div class="panel-heading">
+            Add Person
+        </div>
+        <div class="panel-body">
+            <label>Person Name: </label><input id="personName"/>
+        </div>
+        <div class="panel-footer">
+            <button class="btn btn-primary" onclick="CreatePerson()">Add Person</button>
+        </div>
+    </div>
+
+    <div>
+        <div id="persons" class="row">
+
+            @* to do use knockout to display employee card for each person *@
+            @*<div class="col-md-6">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">Person Name</div>
+                    <div class="panel-body">
+                        <h3>There are 0 images uploaded for this user</h3>
+                        <div>
+                            <div class="col-md-3" style="border: 1px solid blue; height:100px">
+                                <img alt="image1" height="95" width="60" />
+                            </div>
+                            <div class="col-md-3 col-lg-offset-1" style="border: 1px solid blue;height:100px">
+                                <img alt="image2" height="95" width="60" />
+                            </div>
+                            <div class="col-md-3 col-lg-offset-1" style="border: 1px solid blue;height:100px">
+                                <img alt="image3" height="95" width="60" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <button class="btn btn-warning" onclick="">Delete Person</button>
+                        <button class="btn btn-success" onclick="">Add Image</button>
+                    </div>
+
+                </div>
+            </div>*@
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <button class="btn btn-lg btn-danger" onclick="GetEmployees()">Show Employees</button>
+            </div>
+        </div>
+    </div>  
+</div>
+
+<!-- Modal -->
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">                
+                <h4 class="modal-title">Assign Image to Person - <span id="modalPersonName"></span></h4>
+            </div>
+            <div class="modal-body">                
+                    <canvas id="canvas" width="400" height="400" ></canvas>
+                <input id="uploadImage" type="file" name="myPhoto" onchange="PreviewImage();"/>   
+                <input id="personId" hidden/>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="AddImageToPerson()">Upload</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>

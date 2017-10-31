@@ -1,0 +1,133 @@
+﻿@{
+    ViewBag.title = "Face Detection";
+}
+
+@section Scripts{
+    <script>
+
+        var pageTitle = "Face Detection";
+        var video = document.querySelector("#videoElement");
+        $('#jumboTitle').text(pageTitle);
+
+        navigator.getUserMedia = navigator.getUserMedia ||
+            navigator.webkitGetUserMedia ||
+            navigator.mozGetUserMedia ||
+            navigator.msGetUserMedia ||
+            navigator.oGetUserMedia;
+
+        if (navigator.getUserMedia) {
+            navigator.getUserMedia({ video: true }, handleVideo, videoError);
+        }
+
+        function handleVideo(stream) {
+            video.src = window.URL.createObjectURL(stream);
+        }
+
+        function videoError(e) {
+            // do something
+        }
+
+        $('#jumboTitle').text(pageTitle);
+
+        function ShowCamera() {
+            ClearCanvas();
+            $('#videoElement').show();
+            $('#canvas').hide();
+            $('#butDiv').hide();
+            $('#detectButton').show();
+        }
+
+        function ClearCanvas() {
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function HideCamera() {
+            $('#videoElement').hide();
+            $('#canvas').show();
+            $('#butDiv').show();
+            $('#detectButton').hide();
+        }
+
+        function DetectFace(showSquare) {
+            ClearCanvas();
+            HideCamera();
+
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            ClearCanvas();
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(video, 0, 0, 640, 480);
+            var dataURL = canvas.toDataURL('image/jpeg', 1.0);
+            $.ajax({
+                url: '@Url.Action("DetectFace")',
+                type: 'POST',
+                data: {
+                    fileData: dataURL
+                },
+                dataType: "json",
+                success: function(result) {
+                    if (showSquare) {
+                        var rect = result.faces[0].FaceRectangle;                        
+                        context.beginPath();
+                        context.rect(rect.Left, rect.Top, rect.Width, rect.Height);
+                        context.strokeStyle = '#FF0000';
+                        context.stroke();
+                    }
+                    var info = result.faces[0].FaceAttributes;
+                    $('#gender').text(info.Gender);
+                    $('#age').text(info.Age);
+                    $('#glasses').text(info.Glasses);
+                    $('#smile').text(Math.round((info.Smile * 100), 2) + "%");
+                }
+            });
+        }
+
+        function PreviewImage() {
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            var img1 = new Image();
+            var fileReader = new FileReader();
+            var dataUrl;
+
+            fileReader.readAsDataURL(document.getElementById("uploadImage").files[0]);
+            fileReader.onload = function(event) {
+                dataUrl = event.target.result;
+                img1.onload = function() {
+                    context.drawImage(img1, 0, 0, 640, 480);
+                };
+                img1.src = dataUrl;
+            };
+            DetectFace(false);
+        };
+
+    </script>
+}
+
+<div class="container highlightBackground" id="container">
+    <div class="jumbotron center" style="margin-bottom:0;padding-bottom:5px;padding-top:5px;">
+        <h1 id="jumboTitle"></h1>
+    </div>
+    <div class="row" style="margin-top: 0;">
+        <div class="col-md-8" align="center">
+            <video autoplay="true" id="videoElement"></video>
+            <canvas id="canvas" width="640" height="480" hidden></canvas>
+        </div>         
+        <div id="faceInfo" class="col-md-4">
+            <p><span>Male/Female?</span> <span id="gender"></span></p>
+            <p><span>Age (years)</span> <span id="age"></span></p>
+            <p><span>Glasses</span> <span id="glasses"></span></p>
+            <p><span>Smiling?</span> <span id="smile"></span></p>
+        </div>
+    </div>
+    <div class="col-md-12" align="center">
+        <div id="detectButton" class="btn btn-lg btn-danger" onclick="DetectFace(true)">Detect Face</div>
+        <div id="butDiv" hidden>
+            <button id="showCameraButton" class="btn btn-lg btn-danger" onclick="ShowCamera()">Show Camera</button>
+        </div> 
+        @*<div class="col-md-8" align="left">
+            <input id="uploadImage" type="file" name="myPhoto" onchange="PreviewImage();" />
+        </div>*@
+    </div>
+</div >
